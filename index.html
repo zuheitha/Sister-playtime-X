@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Sister Playtime - Zuhe Company</title>
+<style>
+body { margin:0; overflow:hidden; background:#100b18; font-family:Arial; }
+canvas { display:block; }
+#title {
+ position:fixed; top:12px; width:100%;
+ text-align:center; color:#ff83cf;
+ font-size:25px; font-weight:bold;
+ text-shadow:0 0 12px #ff32bb;
+ pointer-events:none;
+}
+#joy {
+ position:fixed; bottom:25px; left:25px;
+ width:120px; height:120px; border-radius:50%;
+ border:3px solid #ff83cf;
+ background:#ffffff22; touch-action:none;
+}
+#stick {
+ position:absolute; width:45px; height:45px;
+ left:37px; top:37px; border-radius:50%;
+ background:#ff83cf;
+}
+#start {
+ position:fixed; inset:0; background:#130b1c;
+ display:flex; flex-direction:column;
+ justify-content:center; align-items:center;
+ color:white; text-align:center;
+}
+h1 { color:#ff83cf; font-size:38px; }
+button {
+ padding:15px 35px; border:0;
+ background:#ff83cf; border-radius:12px;
+ font-size:20px; font-weight:bold;
+}
+#info {
+ position:fixed; top:65px; width:100%;
+ text-align:center; color:white;
+ pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<div id="title">ZUHE COMPANY 🎀</div>
+<div id="info">Explore the factory...</div>
+
+<div id="joy"><div id="stick"></div></div>
+
+<div id="start">
+<h1>SISTER PLAYTIME</h1>
+<p>Hey it's me Zuheitha... wanna play?</p>
+<p>WELCOME TO ZUHE COMPANY</p>
+<button onclick="startGame()">PLAY</button>
+</div>
+
+<script type="module">
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x17101f);
+scene.fog = new THREE.Fog(0x17101f, 15, 65);
+
+const camera = new THREE.PerspectiveCamera(
+75, innerWidth/innerHeight, 0.1, 1000
+);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x44304d,2));
+
+const light = new THREE.PointLight(0xffa5df,100,45);
+light.position.set(0,9,0);
+scene.add(light);
+
+function box(x,y,z,w,h,d,color) {
+ const mesh = new THREE.Mesh(
+  new THREE.BoxGeometry(w,h,d),
+  new THREE.MeshStandardMaterial({color})
+ );
+ mesh.position.set(x,y,z);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ scene.add(mesh);
+ return mesh;
+}
+
+// FACTORY FLOOR
+box(0,-0.5,0,60,1,60,0x39313e);
+
+// FACTORY WALLS
+box(0,6,-30,60,12,1,0x55445c);
+box(0,6,30,60,12,1,0x55445c);
+box(-30,6,0,1,12,60,0x55445c);
+box(30,6,0,1,12,60,0x55445c);
+
+// CEILING
+box(0,12,0,60,1,60,0x302438);
+
+// PINK FACTORY SIGN
+box(0,8,-28.9,18,3,0.3,0xff72c8);
+
+// CONVEYOR BELT
+box(-8,1,0,15,1,4,0x17171d);
+
+for(let i=0;i<12;i++){
+ box(-14+i*1.2,1.55,0,0.8,0.15,3.8,0x77717c);
+}
+
+// PRODUCTION MACHINES
+box(-17,3,-9,5,6,5,0x8d426f);
+box(-17,6,-9,5,0.3,5,0xff83cf);
+box(-17,3,-9,0.3,3,5.2,0xffb4e3);
+
+box(12,3,-12,6,6,7,0x48374f);
+box(12,6,-12,6,0.3,7,0xff83cf);
+
+// LABORATORY
+box(17,2,13,8,4,8,0x51405c);
+box(17,4.2,13,8,0.4,8,0xff83cf);
+
+// GLASS-LIKE LAB WINDOWS
+for(let i=0;i<4;i++){
+ box(13+i*2.5,2,8,1.7,3,0.15,0xa6d9e9);
+}
+
+// CRATES
+for(let i=0;i<8;i++){
+ box(
+  -22+(i%4)*3,
+  1,
+  12+Math.floor(i/4)*4,
+  2,2,2,0x9a6588
+ );
+}
+
+// LIGHTS
+for(let x=-20;x<=20;x+=10){
+ const l=new THREE.PointLight(0xffb5e9,45,18);
+ l.position.set(x,10,0);
+ scene.add(l);
+}
+
+// PLAYER
+const player = new THREE.Group();
+player.position.set(0,0,20);
+scene.add(player);
+
+camera.position.set(0,1.7,0);
+player.add(camera);
+
+// CONTROLS
+const keys={};
+window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+let joyX=0,joyY=0;
+let yaw=0;
+
+const joy=document.getElementById('joy');
+const stick=document.getElementById('stick');
+
+function joystickMove(e){
+ const r=joy.getBoundingClientRect();
+ let dx=e.clientX-(r.left+r.width/2);
+ let dy=e.clientY-(r.top+r.height/2);
+ const len=Math.hypot(dx,dy);
+ if(len>40){dx*=40/len;dy*=40/len;}
+ joyX=dx/40;
+ joyY=dy/40;
+ stick.style.left=(37+dx)+'px';
+ stick.style.top=(37+dy)+'px';
+}
+
+joy.addEventListener('pointerdown',e=>{
+ joy.setPointerCapture(e.pointerId);
+ joystickMove(e);
+});
+joy.addEventListener('pointermove',e=>{
+ if(e.buttons)joystickMove(e);
+});
+function resetJoy(){
+ joyX=0;joyY=0;
+ stick.style.left='37px';
+ stick.style.top='37px';
+}
+joy.addEventListener('pointerup',resetJoy);
+joy.addEventListener('pointercancel',resetJoy);
+
+// TOUCH CAMERA
+let lastX=0;
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(e.pointerType==='touch')lastX=e.clientX;
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(e.pointerType==='touch' && e.buttons){
+  yaw-=(e.clientX-lastX)*0.004;
+  lastX=e.clientX;
+ }
+});
+
+// DESKTOP MOUSE CAMERA
+renderer.domElement.addEventListener('click',()=>{
+ if(!matchMedia('(pointer:coarse)').matches)
+  renderer.domElement.requestPointerLock();
+});
+document.addEventListener('mousemove',e=>{
+ if(document.pointerLockElement===renderer.domElement)
+  yaw-=e.movementX*0.002;
+});
+
+let playing=false;
+
+window.startGame=function(){
+ document.getElementById('start').style.display='none';
+ playing=true;
+};
+
+const clock=new THREE.Clock();
+
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),0.05);
+
+ if(playing){
+  let forward=0,side=0;
+  if(keys['w']||keys['arrowup'])forward+=1;
+  if(keys['s']||keys['arrowdown'])forward-=1;
+  if(keys['a']||keys['arrowleft'])side-=1;
+  if(keys['d']||keys['arrowright'])side+=1;
+
+  forward-=joyY;
+  side+=joyX;
+
+  const length=Math.hypot(forward,side);
+  if(length>1){forward/=length;side/=length;}
+
+  player.rotation.y=yaw;
+
+  const speed=7*dt;
+  player.position.x+=
+   (Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed;
+  player.position.z+=
+   (-Math.cos(yaw)*forward+Math.sin(yaw)*side)*speed;
+
+  player.position.x=Math.max(-27,Math.min(27,player.position.x));
+  player.position.z=Math.max(-27,Math.min(27,player.position.z));
+ }
+
+ renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
